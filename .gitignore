@@ -1,0 +1,16 @@
+*kvstore*.a
+*kvstore*.so
+*kvstore*.dll
+*kvstore*.lib
+*kvstore*.dylib
+*.exe
+*.o
+*.obj
+*.lst
+*.di
+*~
+.dub
+docs.json
+doc/
+docs/
+__dummy.html
