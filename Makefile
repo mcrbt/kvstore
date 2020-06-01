@@ -1,5 +1,5 @@
 NAME = kvstore
-VERS = 0.7.1
+VERS = 0.7.3
 ARCH = 64
 DC = dmd
 DR = rdmd
@@ -21,11 +21,11 @@ test: $(NAME).d
 	$(DR) $(RFLAGS) $<
 
 install: $(NAME) uninstall
-	cp lib$(NAME).so /usr/local/lib
-	ln -s /usr/local/lib/lib$(NAME).so /usr/local/lib/lib$(NAME).$(VERS).so
+	cp lib$(NAME).so /usr/lib
+	ln -s /usr/lib/lib$(NAME).so /usr/lib/lib$(NAME).$(VERS).so
 
 uninstall:
-	rm -f /usr/local/lib/lib$(NAME)*.so
+	rm -f /usr/lib/lib$(NAME)*.so
 
 clean:
 	rm -rf *$(NAME)*.{a,so,dll,lib,dylib} *$(NAME)_test* \
