@@ -35,7 +35,7 @@ import std.range : back, front;
 import std.stdio : chunks, File, remove, write;
 import std.string : toStringz;
 
-private immutable string VERSION = "0.7.1";
+private immutable string VERSION = "0.7.3";
 private const JSONOptions options =
   (JSONOptions.escapeNonAsciiChars);
 
@@ -96,11 +96,11 @@ public class KVStore
    * If store is null the default constructor is called.
    *
    * Params:
-   *     store = a `KVStore` instance to be cloned
+   *     store = a reference to a `KVStore` instance to be cloned
    *     filename = the _filename associated with the cloned store (optional)
    * Throws: JSONException, ErrnoException, StdioException, UnicodeException
    */
-  this(const KVStore store, const string filename = "")
+  this(const ref KVStore store, const string filename = "")
   {
     if(store !is null)
     {
@@ -507,46 +507,45 @@ public class KVStore
    * memory. If there are no entries there is nothing to
    * do which is considered a successful operation and true
    * is returned. The operation is only permitted if for
-   * all keys the maximum number of values is 1.
+   * all keys the maximum number of values (their *depth*)
+   * is 1.
    * true is returned only if the swap operation succeeds
    * for all entries in the store (see overloaded function).
-   * It is possible to enforce uniqueness of values. When
+   * It is possible to enforce *uniqueness*. When
    * trying to swap the key and value of an entry the new
-   * entry is only inserted if there is not such key already.
-   * If uniqueness is required and a key already exists the
-   * operation fails. Otherwise the new value is appended to
-   * the present key. Note that not only all values need to
-   * be unique for this requirement, but there must also be
-   * no key being equal to any of the values as the store is
-   * currently altered in-place. Also keep the following
-   * situation in mind. Having entries { key1: key2 } and
-   * { key2: value2 }, with unique = false, these steps would
-   * be performed:
-   *     1. When "key1" is swapped it is appended to "key2":
-   *        { key2: [value2, key1] }
-   *     2. Now "key2" is still left to be swapped but now
-   *        has a depth of 2 which is not allowed.
+   * entry is only inserted into the store if that key had
+   * not been present before. If uniqueness is required and
+   * a key already exists the operation fails. Otherwise the
+   * new value is appended to the present key.
    *
-   * **CAUTION**: If only one of the _swap operations for a
+   * Note that not only all values (becoming the new keys) need
+   * to be unique for this requirement, but there must also be
+   * no key being equal to any of the *values* in the store,
+   * because the store is currently altered *in-place*. Also
+   * the situation should be kept in mind, where, e.g., having
+   * entries `{ key1: key2 }` and `{ key2: value2 }`, with
+   * `unique = false`: When `key1` is swapped it is appended
+   * to `key2`, getting `{ key2: [value2, key1] }`. `key2` is
+   * still left to be swapped but now has a *depth* of 2 which
+   * is not allowed.
+   * **Caution**: If only one of the _swap operations for a
    * single entry fails the whole operation is aborted and
    * store remains in an inconsistent state. The original
-   * state cannot be recovered in that case. This may change
-   * in the future. There are several possibilities to
-   * implement the ability for the store to roll back to a
-   * consistent state. For instance:
-   *     - Insert the swapped entries into a new store
-   *       and replace the old store if there was no error
-   *       (This would require twice the space in RAM.)
-   *     - Check the uniqueness of the union of values and
-   *       keys before any swapping is done (This would
-   *       decrease the speed of this operation
-   *       significantly.)
-   *     - Save the current store to disk (or create a
-   *       backup), perform the operation, and reload the
-   *       original store from disk if the swapping fails
-   *       (This would also decrease the speed of the
-   *       operation for the additional hard drive accesses
-   *       on possibly very large stores.)
+   * state cannot be recovered in that case. (This may change
+   * in the future). There are several possibilities to
+   * implement the ability for the store to *roll back* to a
+   * consistent state. 1. Insert the swapped entries into a
+   * new store and replace the old store if there was no error.
+   * (This would require twice the space in RAM.) 2. Check the
+   * uniqueness of the *union* of values and keys before any
+   * swapping is done. (Since this is a costly operation it
+   * would decrease the overall speed of the _swap operation
+   * significantly.) 3. Save the current store to disk (or
+   * create a backup), perform the operation, and reload the
+   * original store from disk (or restore the backup) if the
+   * swapping fails. (This would also decrease the speed of the
+   * operation, because of the additional hard drive accesses
+   * on possibly large stores.)
    *
    * Params:
    *     unique = true to abort on two same keys, false to
@@ -777,6 +776,16 @@ public class KVStore
   }
 
   /**
+   * Determine if the store has no elements.
+   *
+   * Returns: true if the store is empty, false otherwise
+   */
+  public const pure bool empty() @property
+  {
+	return (this.keyno <= 0);
+  }
+
+  /**
    * Gets the number of elements currently in the key/value store.
    *
    * Returns: the number of entries currently stored
@@ -977,7 +986,8 @@ private unittest
   assert(!"unittest.kvs".exists);
 
   /* test isDirty, isClean, getFilename, size, count, depth, maxDepth,
-     key, sortedKeys, clear, drop */
+     key, sortedKeys, clear, drop, empty */
+  assert(store.empty);
   assert(store.isDirty);
   assert(!store.isClean);
   assert(store.getFilename(), "unittest.kvs");
@@ -989,6 +999,7 @@ private unittest
 
   store.set("key", "value");
   assert(store.count == 1);
+  assert(!store.empty);
   assert(store.get("key") == "value");
 
   store.append("hello", "dlang");
@@ -1005,11 +1016,13 @@ private unittest
   assert(store.size > (0L));
 
   store.clear();
+  assert(store.empty);
   assert(store.count == 0);
   assert(store.maxDepth == 0);
   assert(store.get("key") is null);
 
-  store.drop();
+  assert(store.drop());
+  assert(store.size == (-1L));
   assert(!"unittest.kvs".exists);
 
   /* test get, getFirst, getAll */
@@ -1170,11 +1183,35 @@ private unittest
   assert(store.closest("head") == "head");
   assert(store.closest("heap") == "heap");
   assert(store.closest("hence") == "hello");
-  assert(store.closest("heae"), "head");
-  assert(store.closest("hean"), "heap");
-  assert(store.closest("help"), "hello");
+  assert(store.closest("heae") == "head");
+  assert(store.closest("hean") == "head");
+  assert(store.closest("help") ==  "hello");
+
+  /* test constructors */
+  // copy constructor
+  KVStore copy = new KVStore(store, "copied.kvs");
+  assert(!copy.empty);
+  assert(copy.count == 3);
+  assert(copy.maxDepth == 7);
+  assert(copy.isDirty);
+  assert(!copy.isClean);
+  assert(copy.getFilename == "copied.kvs");
+  assert(!"copied.kvs".exists);
+
+  // default constructor
+  KVStore def = new KVStore();
+  assert(def.getFilename == "default.kvs");
+  assert(def.empty);
+  assert(!"default.kvs".exists);
+  assert(def.count == 0);
+  assert(def.maxDepth == 0);
+  assert(def.isDirty);
+  assert(!def.isClean);
+
+  def.clear();
+  copy.clear();
   store.clear();
-  store.drop();
+  assert(!store.drop());
 
   /* test toArray */
   assert(toArray("[\"world\",\"of\",\"d\"]") == ["world", "of", "d"]);
