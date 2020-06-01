@@ -8,6 +8,8 @@
 *.o
 *.obj
 *.lst
+*.txz
+*.tgz
 *.di
 *~
 .dub
