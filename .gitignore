@@ -3,6 +3,7 @@
 *kvstore*.dll
 *kvstore*.lib
 *kvstore*.dylib
+*_test*
 *.exe
 *.o
 *.obj
