@@ -36,8 +36,8 @@ object is basically a *map*, `kvstore` itself can be used as a
 results of such computation may be inaccurate. Keys are compared using a
 (private) function of this library implementing the *Levenshtein distance*.
 
-If the key is already exists in the store, that key itself is returned. If the
-passed key is `null` or empty, or if the store is empty `null` is returned. If
+If the key already exists in the store, that key itself is returned. If the
+passed key is `null` or empty, or if the store is empty, `null` is returned. If
 there is only one key in the store then that key is returned independent of its
 *distance* to the passed key.
 
