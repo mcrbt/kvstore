@@ -21,20 +21,43 @@ supported. However, an array of values can still be stored with a single key.
 Data is serialized in JSON format. When deserializing a store from disk the file
 is read in chunks of 4096 bytes. As the serialized data in JSON format does not
 contain any newline symbols the store file only consists of a single line.
-Reading such file *line-wise* would not be the best idea.
+Reading such file line-wise would not be the best idea.
 
 In addition to the standard `get`, `set`, `remove`, `clear` operations there are
 a couple more interesting operations. Among those are `closest` and `swap`.
 
 #### closest
 
-`closest` computes that key in the store being most similar to the one passed to the
-function. This may be useful if keys are string representation of dates, like
-UNIX timestamps or dates in the form `yymmdd`, for instance. As a JSON object
-is basically a *map*, `kvstore` itself can be used as a *map data structure*.
-If the key for a value is computed (dynamically) the results of such computation
-may be inaccurate. Keys are compared using a (private) function implemented in
-the library that works similar to C's `strcmp`.
+`closest` computes that key in the store being most similar to the one passed to
+the function. This may be useful if keys are string representation of dates,
+like UNIX timestamps or dates in the form `yymmdd`, for instance. As a JSON
+object is basically a *map*, `kvstore` itself can be used as a
+*map data structure*. If the key for a value is computed (dynamically) the
+results of such computation may be inaccurate. Keys are compared using a
+(private) function of this library implementing the *Levenshtein distance*.
+
+If the key is already exists in the store, that key itself is returned. If the
+passed key is `null` or empty, or if the store is empty `null` is returned. If
+there is only one key in the store then that key is returned independent of its
+*distance* to the passed key.
+
+If several keys with the same *Levenshtein distance* are found their respective
+length is considered and the one with the length closest to the passed key is
+returned. If all of the equal-distant keys are of the same length, as well,
+their ASCII character code distance of the first differing character is
+considered, additionally.
+
+Computing the *Levenshtein distance* between two keys has a time complexity of
+`O(m * n)` with `m` being the length of the first key, and `n` being the length
+of the second key. The distance to the passed key is computed for every key in
+the store. The array of keys will be sorted in advance to save some operations
+using the default *Phobos* sorting algorithm which performs in `O(k * log(k))`
+with `k` being the number of keys. This makes the `closest` function as costly
+as `O((k * (m * n)) + (k * log(k)))` which is approximately `O(k * a^2)` on
+average, with `k` being the number of keys in the store and `a` being the
+average key length. This is actually an oversimplification but may give a hint
+on the runtime performance of the operation.
+
 
 #### swap
 
@@ -79,8 +102,8 @@ There are several possibilities to implement the ability for the store to
 * Save the current store to disk (or create a backup), perform the
   operation, and reload the original store from disk (or restore the
   backup) if the swapping fails. (This would also decrease the speed
-  of the operation, because of the additional hard drive accesses on
-  possibly large stores.)
+  of the operation, because of the additional hard drive accesses and
+  the parsing of the serialized JSON data.)
 
 
 ## Makefile targets
@@ -154,15 +177,6 @@ Installing the library on a Linux system is done by running:
 ```
 $ make install
 ```
-
-
-## Bugs
-
-Although the provided unit test code currently contains about 130 assertions
-there may still be bugs in the software. The most likely place for a bug is
-the private `compare` function, the `closest` operation relies on. Be aware
-that currently there may be unexpected results when using the `closest`
-function.
 
 
 ## Copyright
