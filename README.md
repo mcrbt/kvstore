@@ -120,8 +120,7 @@ The *Makefile* provides the following targets: `build`, `test`, `install`,
 - The `build` target produces a dynamic library `libkvstore.so`.
 - The code is compiled for a 64-bit architecture using the *Digital Mars*
   compiler `dmd`.
-  architecture.
-- DDoc documentation in HTML format is generated on the fly by `dmd`.
+- *DDoc* documentation in HTML format is generated on the fly by `dmd`.
 - This library is optimized for speed and all symbols are stripped from the
   library using the command `strip`.
 - A header file (*D interface file*) is also generated.
