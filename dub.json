@@ -1,6 +1,6 @@
 {
 	"authors": [ "Daniel Haase" ],
-	"copyright": "Copyright © 2020 Daniel Haase",
+	"copyright": "Copyright © 2020-2021 Daniel Haase",
 	"description": "JSON key/value store",
 	"license": "LGPL-3.0",
 	"name": "kvstore",

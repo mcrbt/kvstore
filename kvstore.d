@@ -1,6 +1,6 @@
 /**
  * kvstore - JSON key/value store
- * Copyright: Copyright (C) 2020 Daniel Haase
+ * Copyright: Copyright (C) 2020-2021 Daniel Haase
  *
  * File: _kvstore.d
  * Author: Daniel Haase
@@ -35,7 +35,7 @@ import std.range : back, front;
 import std.stdio : chunks, File, remove, write;
 import std.string : toStringz;
 
-private immutable string VERSION = "0.8.0";
+private immutable string VERSION = "0.8.1";
 private const JSONOptions options =
 	(JSONOptions.escapeNonAsciiChars);
 
@@ -145,11 +145,11 @@ public class KVStore
 		{
 			if(getSize(this.file) > 0)
 			{
-				File file = File(this.file, "r");
-				scope(exit) file.close();
+				File kvsfile = File(this.file, "r");
+				scope(exit) kvsfile.close();
 
 				string content = "";
-				foreach(ubyte[] chunk; chunks(file, 4096))
+				foreach(ubyte[] chunk; chunks(kvsfile, 4096))
 					content ~= to!string(chunk);
 
 				if(content.length > 0)
@@ -177,9 +177,9 @@ public class KVStore
 	 */
 	public void save()
 	{
-		File file = File(this.file, "w");
-		scope(exit) file.close;
-		file.write(toJSON(this.json, false, options));
+		File kvsfile = File(this.file, "w");
+		scope(exit) kvsfile.close;
+		kvsfile.write(toJSON(this.json, false, options));
 		this.dirty = false;
 	}
 
@@ -224,7 +224,7 @@ public class KVStore
 	 * Returns: true iff key was found,
 	 *     false if not or if key is null or empty
 	 */
-	public const pure bool hasKey(const string key)
+	public pure bool hasKey(const string key) const
 	{
 		if((key is null) || (key.length == 0)) return false;
 		return ((key in this.json) !is null);
@@ -242,7 +242,7 @@ public class KVStore
 	 * Throws: JSONException
 	 * See_Also: `kvstore.KVStore.getFirst`, `kvstore.KVStore.getAll`
 	 */
-	public const string get(const string key)
+	public string get(const string key) const
 	{
 		// input validation in "this.hasKey()"
 		if(!this.hasKey(key)) return null;
@@ -263,7 +263,7 @@ public class KVStore
 	 * Throws: JSONException
 	 * See_Also: `kvstore.KVStore.get`, `kvstore.KVStore.getAll`
 	 */
-	public const string getFirst(const string key)
+	public string getFirst(const string key) const
 	{
 		// input validation in "this.hasKey()"
 		if(!this.hasKey(key)) return null;
@@ -294,7 +294,7 @@ public class KVStore
 	 * Throws: JSONException
 	 * See_Also: `kvstore.KVStore.get`, `kvstore.KVStore.getFirst`
 	 */
-	public const string[] getAll(const string key)
+	public string[] getAll(const string key) const
 	{
 		// input validation in "this.getKey()"
 		if(!this.hasKey(key)) return null;
@@ -416,7 +416,7 @@ public class KVStore
 
 				// append "value" to array
 				this.json[key].array ~= JSONValue(value);
-				ulong len = this.json[key].array.length;
+				immutable ulong len = this.json[key].array.length;
 				if(this.maxdepth < len) this.maxdepth = len;
 			}
 			else
@@ -457,7 +457,7 @@ public class KVStore
 			if(values.length == 1) this.append(key, values[0]);
 			else
 			{
-				ulong len = values.length;
+				immutable ulong len = values.length;
 				foreach(v; values) this.append(key, v);
 				if(len > this.maxdepth) this.maxdepth = len;
 			}
@@ -467,7 +467,7 @@ public class KVStore
 			if(values.length == 1) this.set(key, values[0]);
 			else
 			{
-				ulong len = values.length;
+				immutable ulong len = values.length;
 				this.json.object[key] = parseJSON("[]"); // create JSON array
 				foreach(v; values) this.json.object[key].array ~= JSONValue(v);
 				++(this.keyno);
@@ -491,8 +491,8 @@ public class KVStore
 		// input validation in "this.hasKey()"
 		if(this.hasKey(key))
 		{
-			ulong dep = ((this.json[key].type == JSONType.array) ?
-						 this.json[key].array.length : 1);
+			immutable ulong dep = ((this.json[key].type == JSONType.array) ?
+								   this.json[key].array.length : 1);
 			this.json.object.remove(key);
 			--(this.keyno);
 			this.dirty = true;
@@ -648,7 +648,7 @@ public class KVStore
 	 *		 key = the _key for which to search the _closest one in the store
 	 * Returns: the _key being _clostest to key
 	 */
-	public const pure string closest(const string key)
+	public pure string closest(const string key) const
 	{
 		if((key is null) || (key.length == 0)) return null;
 		if(this.empty) return null;
@@ -659,9 +659,9 @@ public class KVStore
 
 		string[] ids = this.json.object.keys.sort.release;
 
-		ulong keylen = key.length;
-		ulong mindist = 18446744073709551615; // (2^(64) - 1)
-		ulong minlendist = 18446744073709551615; // (2^(64) - 1)
+		immutable ulong keylen = key.length;
+		ulong mindist = 18_446_744_073_709_551_615; // (2^(64) - 1)
+		ulong minlendist = 18_446_744_073_709_551_615; // (2^(64) - 1)
 		ubyte minchardist = 255; // (2^(8) - 1)
 		ulong idx = 0;
 		ulong dist, lendist;
@@ -716,7 +716,7 @@ public class KVStore
 	 *     or 0 if key is not in the store
 	 * Throws: JSONException
 	 */
-	public const pure ulong depth(const string key)
+	public pure ulong depth(const string key) const
 	{
 		// input validation in "this.hasKey()"
 		if(this.hasKey(key))
@@ -739,7 +739,7 @@ public class KVStore
 	 * Returns: key's store entry serialized as JSON string
 	 * Throws: JSONException
 	 */
-	public const string entry(const string key)
+	public string entry(const string key) const
 	{
 		// input validation in "this.hasKey()"
 		if(this.hasKey(key))
@@ -762,7 +762,7 @@ public class KVStore
 	 *     are multiple values
 	 * Throws: JSONException
 	 */
-	public const string[] tuple(const string key)
+	public string[] tuple(const string key) const
 	{
 		// input validation in "this.hasKey()"
 		if(!this.hasKey(key)) return null;
@@ -790,7 +790,7 @@ public class KVStore
 	 * Returns: a string array of _keys currently stored
 	 * Throws: JSONException
 	 */
-	public const pure string[] keys() @property
+	public pure string[] keys() const @property
 	{
 		return this.json.object.keys;
 	}
@@ -803,7 +803,7 @@ public class KVStore
 	 * Returns: a sorted string array of _keys currently stored
 	 * Throws: JSONException
 	 */
-	public const pure string[] sortedKeys() @property
+	public pure string[] sortedKeys() const @property
 	{
 		return sort!((a, b) => compare(a, b) < 0)(this.json.object.keys)
 			.release();
@@ -814,7 +814,7 @@ public class KVStore
 	 *
 	 * Returns: true if the store is empty, false otherwise
 	 */
-	public const pure bool empty() @property
+	public pure bool empty() const @property
 	{
 		return (this.keyno <= 0);
 	}
@@ -824,7 +824,7 @@ public class KVStore
 	 *
 	 * Returns: the number of entries currently stored
 	 */
-	public const pure nothrow ulong count() @property @safe @nogc
+	public pure nothrow ulong count() const @property @safe @nogc
 	{
 		return this.keyno;
 	}
@@ -834,7 +834,7 @@ public class KVStore
 	 *
 	 * Returns: the maximum number of values
 	 */
-	public const pure nothrow ulong maxDepth() @property @safe @nogc
+	public pure nothrow ulong maxDepth() const @property @safe @nogc
 	{
 		return this.maxdepth;
 	}
@@ -847,7 +847,7 @@ public class KVStore
 	 *     in memory is the same as the store on disk
 	 * See_Also: `kvstore.KVStore.isClean`
 	 */
-	 public const pure nothrow bool isDirty() @property @safe @nogc
+	 public pure nothrow bool isDirty() const @property @safe @nogc
 	 {
 		 return this.dirty;
 	 }
@@ -858,7 +858,7 @@ public class KVStore
 	 * Returns: true if the store has been saved, false if not
 	 * See_Also: `kvstore.KVStore.isDirty`
 	 */
-	 public const pure nothrow bool isClean() @property @safe @nogc
+	 public pure nothrow bool isClean() const @property @safe @nogc
 	 {
 		 return !this.dirty;
 	 }
@@ -871,7 +871,7 @@ public class KVStore
 	 * Returns: data file size in bytes, or -1 if the file does not exist
 	 * Throws: FileException
 	 */
-	public const long size() @property
+	public long size() const @property
 	{
 		if(this.file.exists) return getSize(this.file);
 		else return (-1);
@@ -883,7 +883,7 @@ public class KVStore
 	 *
 	 * Returns: the filename of the key/value store
 	 */
-	public const pure nothrow string getFilename() @property @safe @nogc
+	public pure nothrow string getFilename() const @property @safe @nogc
 	{
 		return this.file;
 	}
@@ -923,7 +923,7 @@ public class KVStore
 	 * Returns: all entries serialized as prettified JSON string
 	 * Throws: JSONException
 	 */
-	public const override string toString() @property
+	public override string toString() const @property
 	{
 		return toJSON(this.json, true, JSONOptions.none);
 	}
@@ -934,7 +934,7 @@ public class KVStore
  *
  * Returns: the version of this library
  */
-public pure nothrow string libraryVersion() @property @safe @nogc
+public pure nothrow string libraryVersion() @safe @nogc
 {
 	return VERSION;
 }
@@ -1017,8 +1017,8 @@ private pure ulong distance(const string lhs, const string rhs,
 	else if((lhs is null) && (rhs !is null)) return rhs.length;
 	else if((lhs !is null) && (rhs is null)) return lhs.length;
 
-	ulong lhslen = lhs.length;
-	ulong rhslen = rhs.length;
+	immutable ulong lhslen = lhs.length;
+	immutable ulong rhslen = rhs.length;
 
 	if(rhslen == 0) return lhslen;
 	else if(lhslen == 0) return rhslen;
