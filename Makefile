@@ -1,13 +1,14 @@
 NAME = kvstore
-VERS = 0.7.3
+VERS = 0.8.1
 ARCH = 64
 DC = dmd
 DR = rdmd
+DS = dscanner --styleCheck
 DFLAGS = -shared -release -fPIC -O -H -m$(ARCH) -de -w -D -Dddoc \
 	-preview=markdown -of=lib$(NAME).so
 RFLAGS = -debug -g -m$(ARCH) -de -w -of=$(NAME)_test -unittest -main
 
-.PHONY: all build clean pack test install uninstall
+.PHONY: all build clean lint pack test install uninstall
 
 all: $(NAME)
 
@@ -16,6 +17,9 @@ build: $(NAME)
 $(NAME): $(NAME).d
 	$(DC) $(DFLAGS) $<
 	strip --strip-all lib$(NAME).so
+
+lint: $(NAME).d
+	$(DS) $<
 
 test: $(NAME).d
 	$(DR) $(RFLAGS) $<

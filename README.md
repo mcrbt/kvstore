@@ -112,18 +112,27 @@ For this project the recommended way of managing the build process is using
 the `make` command, rather then `dub`. For convenience, a `dub.json` file is
 also part of this repository, though.
 
-The *Makefile* provides the following targets: `build`, `test`, `install`,
-`uninstall`. Of course, `clean` and `pack` targets are also present.
+The *Makefile* provides the following targets: `build`, `lint`, `test`,
+`install`, `uninstall`. Of course, `clean` and `pack` targets are also present.
 
 #### `build`
 
 - The `build` target produces a dynamic library `libkvstore.so`.
 - The code is compiled for a 64-bit architecture using the *Digital Mars*
   compiler `dmd`.
-- *DDoc* documentation in HTML format is generated on the fly by `dmd`.
+  architecture.
+- DDoc documentation in HTML format is generated on the fly by `dmd`.
 - This library is optimized for speed and all symbols are stripped from the
   library using the command `strip`.
 - A header file (*D interface file*) is also generated.
+
+#### `lint`
+
+- The `lint` target runs the `dscanner` tool against the source file
+  `kvstore.d`.
+- If there are no style warnings, nothing is printed and `dscanner` exits
+  successfully with exit code 0. Hence, the Makefile target succeeds
+  and `make` exits with code 0, as well.
 
 #### `test`
 
@@ -131,7 +140,7 @@ The *Makefile* provides the following targets: `build`, `test`, `install`,
   symbols from the library code by adding a default `main()` function
   declaration.
 - The contained *unit tests* are executed automatically when using the `test`
-  target as `rdmd` is used as "compiler" command.
+  target as `rdmd` is used as command, rather than `dmd`.
 
 #### `install`
 
@@ -163,7 +172,7 @@ HTML documentation) is as simple as:
 $ make
 ```
 
-`$ make build` and `$ make all` can be run equivalently.
+`$ make build`, `$ make kvstore`, and `$ make all` can be run equivalently.
 
 To run the provided unit tests the following command can be executed:
 
@@ -180,7 +189,7 @@ $ make install
 
 ## Copyright
 
-Copyright &copy; 2020 Daniel Haase
+Copyright &copy; 2020-2021 Daniel Haase
 
 `kvstore` is licensed under **GNU Lesser General Public License**, version 3.
 
@@ -189,7 +198,7 @@ Copyright &copy; 2020 Daniel Haase
 
 ```
 kvstore - JSON key/value store
-Copyright (C) 2020 Daniel Haase
+Copyright (C) 2020-2021 Daniel Haase
 
 This program is free software: you can redistribute it and/or modify it under the
 terms of the GNU Lesser General Public License as published by the Free
