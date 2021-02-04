@@ -136,11 +136,11 @@ The *Makefile* provides the following targets: `build`, `lint`, `test`,
 
 #### `test`
 
-- The `test` target produces an executable (`kvstore_test`) with debugging
-  symbols from the library code by adding a default `main()` function
-  declaration.
-- The contained *unit tests* are executed automatically when using the `test`
-  target as `rdmd` is used as command, rather than `dmd`.
+- The `test` target does not produce any executable, but compiles the
+  library in `debug` mode and immediately runs the contained *unit tests*.
+- Additionally, a code coverage analysis is done and a report `kvstore.lst`
+  is generated. The source code coverage for the unit tests (in percent) is
+  printed afterwards.
 
 #### `install`
 
@@ -174,7 +174,8 @@ $ make
 
 `$ make build`, `$ make kvstore`, and `$ make all` can be run equivalently.
 
-To run the provided unit tests the following command can be executed:
+To run the provided unit tests and perform a source code coverage analysis,
+the following command can be executed:
 
 ```
 $ make test

@@ -4,11 +4,17 @@ ARCH = 64
 DC = dmd
 DR = rdmd
 DS = dscanner --styleCheck
+STRIP = strip --strip-all
+TAIL = tail -n 1
+CP = cp
+LN = ln -s
+RM = rm -f
+TAR = tar cJf
 DFLAGS = -shared -release -fPIC -O -H -m$(ARCH) -de -w -D -Dddoc \
 	-preview=markdown -of=lib$(NAME).so
-RFLAGS = -debug -g -m$(ARCH) -de -w -of=$(NAME)_test -unittest -main
+TFLAGS = -debug -g -m$(ARCH) -de -w -unittest -cov -main
 
-.PHONY: all build clean lint pack test install uninstall
+.PHONY: all build clean coverage lint pack test install uninstall
 
 all: $(NAME)
 
@@ -16,26 +22,27 @@ build: $(NAME)
 
 $(NAME): $(NAME).d
 	$(DC) $(DFLAGS) $<
-	strip --strip-all lib$(NAME).so
+	$(STRIP) lib$(NAME).so
 
 lint: $(NAME).d
 	$(DS) $<
 
 test: $(NAME).d
-	$(DR) $(RFLAGS) $<
+	$(DR) $(TFLAGS) $<
+	$(TAIL) $(NAME).lst
 
 install: $(NAME) uninstall
-	cp lib$(NAME).so /usr/lib
-	ln -s /usr/lib/lib$(NAME).so /usr/lib/lib$(NAME).$(VERS).so
+	$(CP) lib$(NAME).so /usr/lib
+	$(LN) /usr/lib/lib$(NAME).so /usr/lib/lib$(NAME).$(VERS).so
 
 uninstall:
-	rm -f /usr/lib/lib$(NAME)*.so
+	$(RM) /usr/lib/lib$(NAME)*.so
 
 clean:
-	rm -rf *$(NAME)*.{a,so,dll,lib,dylib} *$(NAME)_test* \
-		*.{o,obj,exe,lst} *~ __main.di .dub doc/* docs/ \
-		docs.json __dummy.html
+	$(RM) -r *$(NAME)*.{a,so,dll,lib,dylib} *$(NAME)_{test,cov}* \
+	*.{o,obj,exe,lst} *~ __main.* .dub doc/* docs/ \
+	docs.json __dummy.html
 
 pack:
-	tar cJf $(NAME)_$(VERS).txz *.d *.di Makefile README* LICENSE \
-		dub*.json .gitignore
+	$(TAR) $(NAME)_$(VERS).txz *.d *.di Makefile README* LICENSE \
+	dub*.json .gitignore
