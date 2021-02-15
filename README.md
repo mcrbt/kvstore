@@ -108,10 +108,7 @@ There are several possibilities to implement the ability for the store to
 
 ## Makefile targets
 
-For this project the recommended way of managing the build process is using
-the `make` command, rather then `dub`. For convenience, a `dub.json` file is
-also part of this repository, though.
-
+This project's lifecycle is managed using *GNU* `make`, rather than `dub`.
 The *Makefile* provides the following targets: `build`, `lint`, `test`,
 `install`, `uninstall`. Of course, `clean` and `pack` targets are also present.
 
